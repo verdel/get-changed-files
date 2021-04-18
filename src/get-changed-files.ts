@@ -6,7 +6,7 @@ interface Inputs {
   files: string
 }
 
-interface GitHubEvent {
+interface GitHubPullRequestEvent {
   repository: {
     owner: {
       login: string
@@ -18,6 +18,45 @@ interface GitHubEvent {
     base: { sha: string }
     head: { sha: string }
   }
+}
+
+function isGitHubPullRequestEvent(
+  event: GitHubEvent
+): event is GitHubPullRequestEvent {
+  return !!(event as any).pull_request
+}
+
+interface GitHubPushEvent {
+  repository: {
+    owner: {
+      login: string
+    }
+    name: string
+  }
+  before: string
+  after: string
+}
+
+function isGitHubPushEvent(event: GitHubEvent): event is GitHubPushEvent {
+  return !!(event as any).after
+}
+
+type GitHubEvent = GitHubPullRequestEvent | GitHubPushEvent
+
+function getBeforeAfterShas(event: GitHubEvent) {
+  if (isGitHubPullRequestEvent(event)) {
+    return {
+      before: event.pull_request.base.sha,
+      after: event.pull_request.merge_commit_sha,
+    }
+  } else if (isGitHubPushEvent(event)) {
+    return {
+      before: event.before,
+      after: event.after,
+    }
+  }
+
+  throw new Error("Unexpected event")
 }
 
 export async function getChangedFiles({
@@ -34,11 +73,21 @@ export async function getChangedFiles({
     .split("\n")
     .map((s) => s.trim())
 
+  const sha = getBeforeAfterShas(event)
+
+  const isFirstPushOfBranch =
+    sha.before === "0000000000000000000000000000000000000000"
+  if (isFirstPushOfBranch) {
+    return {
+      files: [],
+    }
+  }
+
   const result = await gh.compareCommits({
     owner: event.repository.owner.login,
     repo: event.repository.name,
-    base: event.pull_request.base.sha,
-    head: event.pull_request.merge_commit_sha,
+    base: sha.before,
+    head: sha.after,
   })
 
   const existingFiles = result.data.files
@@ -68,7 +117,7 @@ export async function getChangedFiles({
           (await gh.isDirectoryExist({
             owner: event.repository.owner.login,
             repo: event.repository.name,
-            ref: event.pull_request.merge_commit_sha,
+            ref: sha.after,
             path: dir.dirname,
           }))
 

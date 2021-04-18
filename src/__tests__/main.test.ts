@@ -4,13 +4,12 @@ import type {
   IsDirectoryExistOptions,
 } from "../github"
 import { getChangedFiles } from "../get-changed-files"
-
-// TODO: use real event
 import pullRequestEvent from "./events/pull_request_event"
+import pushEvent from "./events/push_event"
 
 type CompareFilesData = Array<{
-  base: string
-  head: string
+  before: string
+  after: string
   files: Array<{ filename: string; status: string }>
 }>
 
@@ -28,11 +27,13 @@ class GitHub implements GitHubAPI {
 
   async compareCommits(opts: CompareCommitsOptions) {
     const data = this.opts.compareFilesData.find(
-      (d) => d.base === opts.base && d.head === opts.head
+      (d) => d.before === opts.base && d.after === opts.head
     )
 
     if (!data) {
-      return Promise.reject(new Error("Not found"))
+      return Promise.reject(
+        new Error(`Not found. opts: ${JSON.stringify(opts)}`)
+      )
     }
 
     return Promise.resolve({
@@ -47,147 +48,194 @@ class GitHub implements GitHubAPI {
   }
 }
 
-test("should return list of added and modified files", async () => {
-  const gh = new GitHub({
-    compareFilesData: [
-      {
-        base: pullRequestEvent.pull_request.base.sha,
-        head: pullRequestEvent.pull_request.merge_commit_sha,
-        files: [
-          { filename: "packages/package-1/package.json", status: "modified" },
-          { filename: "packages/package-2/package.json", status: "added" },
-        ],
-      },
-    ],
-  })
-
-  const result = await getChangedFiles({
-    gh,
-    inputs: { files: "**/*" },
+const events = [
+  {
+    name: "pull_request",
     event: pullRequestEvent,
-  })
+    sha: {
+      before: pullRequestEvent.pull_request.base.sha,
+      after: pullRequestEvent.pull_request.merge_commit_sha,
+    },
+  },
+  {
+    name: "push",
+    event: pushEvent,
+    sha: {
+      before: pushEvent.before,
+      after: pushEvent.after,
+    },
+  },
+]
 
-  expect(result).toEqual({
-    files: [
-      "packages/package-1/package.json",
-      "packages/package-2/package.json",
-    ],
-  })
-})
-
-test("should not return removed files", async () => {
-  const gh = new GitHub({
-    compareFilesData: [
-      {
-        base: pullRequestEvent.pull_request.base.sha,
-        head: pullRequestEvent.pull_request.merge_commit_sha,
-        files: [
-          { filename: "packages/package-1/package.json", status: "modified" },
-          { filename: "packages/package-2/package.json", status: "added" },
-          { filename: "packages/package-3/package.json", status: "removed" },
+for (const event of events) {
+  describe(`${event.name} event`, () => {
+    test("should return list of added and modified files", async () => {
+      const gh = new GitHub({
+        compareFilesData: [
+          {
+            before: event.sha.before,
+            after: event.sha.after,
+            files: [
+              {
+                filename: "packages/package-1/package.json",
+                status: "modified",
+              },
+              { filename: "packages/package-2/package.json", status: "added" },
+            ],
+          },
         ],
-      },
-    ],
-  })
+      })
 
-  const result = await getChangedFiles({
-    gh,
-    inputs: { files: "**/*" },
-    event: pullRequestEvent,
-  })
+      const result = await getChangedFiles({
+        gh,
+        inputs: { files: "**/*" },
+        event: event.event,
+      })
 
-  expect(result).toEqual({
-    files: [
-      "packages/package-1/package.json",
-      "packages/package-2/package.json",
-    ],
-  })
-})
-
-test("should return directories if glob ends with slash", async () => {
-  const gh = new GitHub({
-    compareFilesData: [
-      {
-        base: pullRequestEvent.pull_request.base.sha,
-        head: pullRequestEvent.pull_request.merge_commit_sha,
+      expect(result).toEqual({
         files: [
-          { filename: "packages/package-1/package.json", status: "modified" },
-          { filename: "packages/package-2/package.json", status: "added" },
-          { filename: "packages/package-3/test.js", status: "removed" },
-          { filename: "packages/package-3/index.js", status: "modified" },
+          "packages/package-1/package.json",
+          "packages/package-2/package.json",
         ],
-      },
-    ],
-  })
+      })
+    })
 
-  const result = await getChangedFiles({
-    gh,
-    inputs: { files: "packages/*/" },
-    event: pullRequestEvent,
-  })
+    test("should not return removed files", async () => {
+      const gh = new GitHub({
+        compareFilesData: [
+          {
+            before: event.sha.before,
+            after: event.sha.after,
+            files: [
+              {
+                filename: "packages/package-1/package.json",
+                status: "modified",
+              },
+              { filename: "packages/package-2/package.json", status: "added" },
+              {
+                filename: "packages/package-3/package.json",
+                status: "removed",
+              },
+            ],
+          },
+        ],
+      })
 
-  expect(result).toEqual({
-    files: [
-      "packages/package-1/",
-      "packages/package-2/",
-      "packages/package-3/",
-    ],
-  })
-})
+      const result = await getChangedFiles({
+        gh,
+        inputs: { files: "**/*" },
+        event: event.event,
+      })
 
-test("should return directories with only removed files if they exist on remote", async () => {
-  const gh = new GitHub({
-    compareFilesData: [
-      {
-        base: pullRequestEvent.pull_request.base.sha,
-        head: pullRequestEvent.pull_request.merge_commit_sha,
+      expect(result).toEqual({
         files: [
-          { filename: "packages/package-1/package.json", status: "modified" },
-          { filename: "packages/package-2/package.json", status: "added" },
-          { filename: "packages/package-3/package.json", status: "removed" },
+          "packages/package-1/package.json",
+          "packages/package-2/package.json",
         ],
-      },
-    ],
-    existingDirectories: ["packages/package-3/"],
-  })
+      })
+    })
 
-  const result = await getChangedFiles({
-    gh,
-    inputs: { files: "packages/*/" },
-    event: pullRequestEvent,
-  })
+    test("should return directories if glob ends with slash", async () => {
+      const gh = new GitHub({
+        compareFilesData: [
+          {
+            before: event.sha.before,
+            after: event.sha.after,
+            files: [
+              {
+                filename: "packages/package-1/package.json",
+                status: "modified",
+              },
+              { filename: "packages/package-2/package.json", status: "added" },
+              { filename: "packages/package-3/test.js", status: "removed" },
+              { filename: "packages/package-3/index.js", status: "modified" },
+            ],
+          },
+        ],
+      })
 
-  expect(result).toEqual({
-    files: [
-      "packages/package-1/",
-      "packages/package-2/",
-      "packages/package-3/",
-    ],
-  })
-})
+      const result = await getChangedFiles({
+        gh,
+        inputs: { files: "packages/*/" },
+        event: event.event,
+      })
 
-test("should not return directories with only removed files if they do not exist on remote", async () => {
-  const gh = new GitHub({
-    compareFilesData: [
-      {
-        base: pullRequestEvent.pull_request.base.sha,
-        head: pullRequestEvent.pull_request.merge_commit_sha,
+      expect(result).toEqual({
         files: [
-          { filename: "packages/package-1/package.json", status: "modified" },
-          { filename: "packages/package-2/package.json", status: "added" },
-          { filename: "packages/package-3/package.json", status: "removed" },
+          "packages/package-1/",
+          "packages/package-2/",
+          "packages/package-3/",
         ],
-      },
-    ],
-  })
+      })
+    })
 
-  const result = await getChangedFiles({
-    gh,
-    inputs: { files: "packages/*/" },
-    event: pullRequestEvent,
-  })
+    test("should return directories with only removed files if they exist on remote", async () => {
+      const gh = new GitHub({
+        compareFilesData: [
+          {
+            before: event.sha.before,
+            after: event.sha.after,
+            files: [
+              {
+                filename: "packages/package-1/package.json",
+                status: "modified",
+              },
+              { filename: "packages/package-2/package.json", status: "added" },
+              {
+                filename: "packages/package-3/package.json",
+                status: "removed",
+              },
+            ],
+          },
+        ],
+        existingDirectories: ["packages/package-3/"],
+      })
 
-  expect(result).toEqual({
-    files: ["packages/package-1/", "packages/package-2/"],
+      const result = await getChangedFiles({
+        gh,
+        inputs: { files: "packages/*/" },
+        event: event.event,
+      })
+
+      expect(result).toEqual({
+        files: [
+          "packages/package-1/",
+          "packages/package-2/",
+          "packages/package-3/",
+        ],
+      })
+    })
+
+    test("should not return directories with only removed files if they do not exist on remote", async () => {
+      const gh = new GitHub({
+        compareFilesData: [
+          {
+            before: event.sha.before,
+            after: event.sha.after,
+            files: [
+              {
+                filename: "packages/package-1/package.json",
+                status: "modified",
+              },
+              { filename: "packages/package-2/package.json", status: "added" },
+              {
+                filename: "packages/package-3/package.json",
+                status: "removed",
+              },
+            ],
+          },
+        ],
+      })
+
+      const result = await getChangedFiles({
+        gh,
+        inputs: { files: "packages/*/" },
+        event: event.event,
+      })
+
+      expect(result).toEqual({
+        files: ["packages/package-1/", "packages/package-2/"],
+      })
+    })
   })
-})
+}
