@@ -1,11 +1,17 @@
-name: "Your name here"
-description: "Provide a description here"
-author: "Your name or organization here"
+name: "Get changed files"
+description: "Get changed files with based branch on PR or since last push"
+author: "Maxim Samoilov (Nitive) <samoilowmaxim@gmail.com>"
 inputs:
-  milliseconds:
+  files:
     required: false
-    description: "input description here"
-    default: "10"
+    description: >
+      File globs to include in results
+    default: "**/*"
+  token:
+    required: false
+    description: >
+      Personal access token (PAT) used to make GitHub API calls
+    default: ${{ github.token }}
 runs:
   using: "node12"
   main: "dist/index.js"

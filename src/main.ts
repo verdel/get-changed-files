@@ -1,16 +1,26 @@
 import * as core from "@actions/core"
-import { wait } from "./wait"
+import * as fs from "fs"
+import { getChangedFiles } from "./get-changed-files"
+import { GitHub } from "./github"
 
 async function run(): Promise<void> {
   try {
-    const ms: string = core.getInput("milliseconds")
-    core.debug(`Waiting ${ms} milliseconds ...`) // debug is only output if you set the secret `ACTIONS_RUNNER_DEBUG` to true
+    const filesInput = core.getInput("files")
 
-    core.debug(new Date().toTimeString())
-    await wait(parseInt(ms, 10))
-    core.debug(new Date().toTimeString())
+    const gh = new GitHub(core.getInput("token", { required: true }))
+    const inputs = {
+      files: filesInput,
+    }
 
-    core.setOutput("time", new Date().toTimeString())
+    const eventPath = process.env.GITHUB_EVENT_PATH
+    if (!eventPath) {
+      throw new Error("GitHub event not found")
+    }
+    const event = JSON.parse(await fs.promises.readFile(eventPath, "utf8"))
+
+    const result = await getChangedFiles({ gh, inputs, event })
+
+    core.setOutput("files", result.files)
   } catch (error) {
     core.setFailed(error.message)
   }

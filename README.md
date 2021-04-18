@@ -12,7 +12,7 @@ jobs:
   produce-charts-matrix:
     runs-on: ubuntu-latest
     outputs:
-      matrix: ${{ steps.produce-matrix.outputs.matrix }}
+      files: ${{ steps.produce-matrix.outputs.files }}
     steps:
       - uses: actions/checkout@v2
 
@@ -28,9 +28,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        chart: ${{ fromJson(needs.produce-charts-matrix.outputs.matrix) }}
-    env:
-      KUBECONFORM_VERSION: v0.4.3
+        chart: ${{ fromJson(needs.produce-charts-matrix.outputs.files) }}
     steps:
       - uses: actions/checkout@v2
 

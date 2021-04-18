@@ -12,7 +12,7 @@ lint:
 	yarn eslint src/**/*.ts
 
 package:
-	yarn tsc --project .
+	yarn tsc --project . --rootDir src --outDir lib
 	yarn ncc build
 
 test:
