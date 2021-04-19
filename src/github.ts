@@ -76,7 +76,7 @@ export class GitHub implements GitHubAPI {
         owner: opts.owner,
         repo: opts.repo,
         ref: opts.ref,
-        path: opts.path,
+        path: opts.path.replace(/\/$/, ""),
       })
       return true
     } catch (err) {
