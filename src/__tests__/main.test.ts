@@ -48,7 +48,9 @@ class GitHub implements GitHubAPI {
   }
 }
 
+function info(data: any) {}
 function debug(data: any) {}
+const log = { info, debug }
 
 const events = [
   {
@@ -92,7 +94,7 @@ for (const event of events) {
         gh,
         inputs: { files: "**/*" },
         event: event.event,
-        debug,
+        log,
       })
 
       expect(result).toEqual({
@@ -128,7 +130,7 @@ for (const event of events) {
         gh,
         inputs: { files: "**/*" },
         event: event.event,
-        debug,
+        log,
       })
 
       expect(result).toEqual({
@@ -162,7 +164,7 @@ for (const event of events) {
         gh,
         inputs: { files: "packages/*/" },
         event: event.event,
-        debug,
+        log,
       })
 
       expect(result).toEqual({
@@ -200,7 +202,7 @@ for (const event of events) {
         gh,
         inputs: { files: "packages/*/" },
         event: event.event,
-        debug,
+        log,
       })
 
       expect(result).toEqual({
@@ -237,7 +239,7 @@ for (const event of events) {
         gh,
         inputs: { files: "packages/*/" },
         event: event.event,
-        debug,
+        log,
       })
 
       expect(result).toEqual({

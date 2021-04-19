@@ -59,18 +59,23 @@ function getBeforeAfterShas(event: GitHubEvent) {
   throw new Error("Unexpected event")
 }
 
+interface Log {
+  info: (data: any) => void
+  debug: (data: any) => void
+}
+
 export async function getChangedFiles({
   gh,
   inputs,
   event,
-  debug,
+  log,
 }: {
   gh: GitHubAPI
   inputs: Inputs
   event: GitHubEvent
-  debug: (data: any) => void
+  log: Log
 }) {
-  debug({ inputs, event })
+  log.debug({ inputs, event })
 
   const filesGlobs = inputs.files
     .trim()
@@ -94,24 +99,39 @@ export async function getChangedFiles({
     head: sha.after,
   })
 
+  log.info({
+    allChangedFiles: result.data.files.map((f) => ({
+      filename: f.filename,
+      status: f.status,
+    })),
+  })
+
   const existingFiles = result.data.files
     // This action is suppose to find existing files and run tests on them
     // so we can filter out removed ones
     .filter((file) => file.status !== "removed")
     .map((file) => file.filename)
 
+  log.info({ existingFiles })
+
   const matchingFiles = existingFiles.filter((fileName) =>
     filesGlobs
       .filter((glob) => !glob.endsWith("/"))
       .some((glob) => minimatch(fileName, glob))
   )
+  log.info({ matchingFiles })
 
   const changedDirectories = getChangedDirectories(result.data.files)
+
+  log.info({ changedDirectories })
+
   const matchedChangedDirectories = changedDirectories.filter((fileName) =>
     filesGlobs
       .filter((glob) => glob.endsWith("/"))
       .some((glob) => minimatch(fileName.dirname, glob))
   )
+
+  log.info({ matchedChangedDirectories })
 
   const matchedChangedExistingDirectories = (
     await Promise.all(
@@ -129,6 +149,8 @@ export async function getChangedFiles({
       })
     )
   ).filter(Boolean)
+
+  log.info({ matchedChangedExistingDirectories })
 
   return {
     files: [...matchingFiles, ...matchedChangedExistingDirectories],

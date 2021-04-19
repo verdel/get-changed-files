@@ -3,8 +3,13 @@ import * as fs from "fs"
 import { getChangedFiles } from "./get-changed-files"
 import { GitHub } from "./github"
 
-function debug(data: any) {
-  core.debug(JSON.stringify(data))
+const log = {
+  debug(data: any) {
+    core.debug(JSON.stringify(data))
+  },
+  info(data: any) {
+    core.info(JSON.stringify(data))
+  },
 }
 
 async function run(): Promise<void> {
@@ -22,8 +27,8 @@ async function run(): Promise<void> {
     }
     const event = JSON.parse(await fs.promises.readFile(eventPath, "utf8"))
 
-    const result = await getChangedFiles({ gh, inputs, event, debug })
-    debug({ result })
+    const result = await getChangedFiles({ gh, inputs, event, log })
+    log.info({ result })
 
     core.setOutput("files", result.files)
   } catch (error) {
