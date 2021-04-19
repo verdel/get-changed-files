@@ -48,6 +48,8 @@ class GitHub implements GitHubAPI {
   }
 }
 
+function debug(data: any) {}
+
 const events = [
   {
     name: "pull_request",
@@ -90,6 +92,7 @@ for (const event of events) {
         gh,
         inputs: { files: "**/*" },
         event: event.event,
+        debug,
       })
 
       expect(result).toEqual({
@@ -125,6 +128,7 @@ for (const event of events) {
         gh,
         inputs: { files: "**/*" },
         event: event.event,
+        debug,
       })
 
       expect(result).toEqual({
@@ -158,6 +162,7 @@ for (const event of events) {
         gh,
         inputs: { files: "packages/*/" },
         event: event.event,
+        debug,
       })
 
       expect(result).toEqual({
@@ -195,6 +200,7 @@ for (const event of events) {
         gh,
         inputs: { files: "packages/*/" },
         event: event.event,
+        debug,
       })
 
       expect(result).toEqual({
@@ -231,6 +237,7 @@ for (const event of events) {
         gh,
         inputs: { files: "packages/*/" },
         event: event.event,
+        debug,
       })
 
       expect(result).toEqual({

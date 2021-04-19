@@ -15,5 +15,6 @@ module.exports = {
   rules: {
     camelcase: ["off"],
     "import/no-namespace": ["off"],
+    "no-unused-vars": ["off"],
   },
 }

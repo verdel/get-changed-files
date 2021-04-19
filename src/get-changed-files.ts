@@ -63,11 +63,15 @@ export async function getChangedFiles({
   gh,
   inputs,
   event,
+  debug,
 }: {
   gh: GitHubAPI
   inputs: Inputs
   event: GitHubEvent
+  debug: (data: any) => void
 }) {
+  debug({ inputs, event })
+
   const filesGlobs = inputs.files
     .trim()
     .split("\n")

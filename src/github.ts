@@ -1,3 +1,4 @@
+import * as core from "@actions/core"
 import * as github from "@actions/github"
 
 export interface CompareCommitsOptions {
@@ -22,7 +23,6 @@ export interface File {
 
 export interface GitHubAPI {
   compareCommits(
-    // eslint-disable-next-line no-unused-vars
     opts: CompareCommitsOptions
   ): Promise<{
     data: {
@@ -30,14 +30,35 @@ export interface GitHubAPI {
     }
   }>
 
-  // eslint-disable-next-line no-unused-vars
   isDirectoryExist(opts: IsDirectoryExistOptions): Promise<boolean>
+}
+
+function createAPIMethod<Opts, Response>(
+  name: string,
+  fn: (opts: Opts) => Promise<Response>
+): (opts: Opts) => Promise<Response> {
+  return async (opts: Opts) => {
+    try {
+      return await fn(opts)
+    } catch (err) {
+      core.debug(JSON.stringify({ name, opts, err: err.toString() }))
+      return Promise.reject(err)
+    }
+  }
 }
 
 export class GitHub implements GitHubAPI {
   octokit: ReturnType<typeof github.getOctokit>
   constructor(token: string) {
     this.octokit = github.getOctokit(token)
+    this.compareCommits = createAPIMethod(
+      "compareCommits",
+      this.compareCommits.bind(this)
+    )
+    this.isDirectoryExist = createAPIMethod(
+      "isDirectoryExist",
+      this.isDirectoryExist.bind(this)
+    )
   }
 
   async compareCommits(opts: CompareCommitsOptions) {
