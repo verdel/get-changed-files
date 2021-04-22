@@ -9,31 +9,31 @@ A GitHub action to get changed in PR or after push actions. It should be used to
 
 ```yaml
 jobs:
-  produce-charts-matrix:
+  produce-packages-matrix:
     runs-on: ubuntu-latest
     outputs:
       files: ${{ steps.produce-matrix.outputs.files }}
     steps:
       - uses: actions/checkout@v2
 
-      - name: Produce charts matrix from folder structure
+      - name: Produce packages matrix from folder structure
         id: produce-matrix
         uses: Nitive/get-changed-files@v1
         with:
           files: |
-            charts/*/
+            packages/*/
 
-  chart-lint:
-    needs: produce-charts-matrix
+  package-lint:
+    needs: produce-packages-matrix
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        chart: ${{ fromJson(needs.produce-charts-matrix.outputs.files) }}
+        package: ${{ fromJson(needs.produce-packages-matrix.outputs.files) }}
     steps:
       - uses: actions/checkout@v2
 
-      - name: Lint chart
+      - name: Lint package
         id: working-directory
         run: make lint
-        working-directory: ${{ matrix.chart }}
+        working-directory: ${{ matrix.package }}
 ```
