@@ -31,6 +31,7 @@ async function run(): Promise<void> {
     log.info({ result })
 
     core.setOutput("files", result.files)
+    core.setOutput("empty", result.empty)
   } catch (error) {
     core.setFailed(error.message)
   }

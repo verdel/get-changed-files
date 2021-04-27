@@ -89,6 +89,7 @@ export async function getChangedFiles({
   if (isFirstPushOfBranch) {
     return {
       files: [],
+      empty: true,
     }
   }
 
@@ -151,8 +152,10 @@ export async function getChangedFiles({
   ).filter(Boolean)
 
   log.info({ matchedChangedExistingDirectories })
+  const files = [...matchingFiles, ...matchedChangedExistingDirectories]
 
   return {
-    files: [...matchingFiles, ...matchedChangedExistingDirectories],
+    files,
+    empty: files.length === 0,
   }
 }

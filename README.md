@@ -13,6 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       files: ${{ steps.produce-matrix.outputs.files }}
+      empty: ${{ steps.produce-matrix.outputs.empty }}
     steps:
       - uses: actions/checkout@v2
 
@@ -25,6 +26,7 @@ jobs:
 
   package-lint:
     needs: produce-packages-matrix
+    if: ${{ needs.produce-packages-matrix.outputs.empty == 'false' }}
     runs-on: ubuntu-latest
     strategy:
       matrix:

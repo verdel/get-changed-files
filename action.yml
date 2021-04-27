@@ -12,6 +12,13 @@ inputs:
     description: >
       Personal access token (PAT) used to make GitHub API calls
     default: ${{ github.token }}
+outputs:
+  files:
+    description: >
+      List of changed files or directories
+  empty:
+    description: >
+      Set to true if no modified files or folders were found
 runs:
   using: "node12"
   main: "dist/index.js"

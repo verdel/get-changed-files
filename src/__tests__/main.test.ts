@@ -102,6 +102,7 @@ for (const event of events) {
           "packages/package-1/package.json",
           "packages/package-2/package.json",
         ],
+        empty: false,
       })
     })
 
@@ -138,6 +139,7 @@ for (const event of events) {
           "packages/package-1/package.json",
           "packages/package-2/package.json",
         ],
+        empty: false,
       })
     })
 
@@ -173,6 +175,7 @@ for (const event of events) {
           "packages/package-2/",
           "packages/package-3/",
         ],
+        empty: false,
       })
     })
 
@@ -211,6 +214,7 @@ for (const event of events) {
           "packages/package-2/",
           "packages/package-3/",
         ],
+        empty: false,
       })
     })
 
@@ -244,6 +248,41 @@ for (const event of events) {
 
       expect(result).toEqual({
         files: ["packages/package-1/", "packages/package-2/"],
+        empty: false,
+      })
+    })
+
+    test("should return empty files list", async () => {
+      const gh = new GitHub({
+        compareFilesData: [
+          {
+            before: event.sha.before,
+            after: event.sha.after,
+            files: [
+              {
+                filename: "packages/package-1/package.json",
+                status: "modified",
+              },
+              { filename: "packages/package-2/package.json", status: "added" },
+              {
+                filename: "packages/package-3/package.json",
+                status: "removed",
+              },
+            ],
+          },
+        ],
+      })
+
+      const result = await getChangedFiles({
+        gh,
+        inputs: { files: "src/*" },
+        event: event.event,
+        log,
+      })
+
+      expect(result).toEqual({
+        files: [],
+        empty: true,
       })
     })
   })
