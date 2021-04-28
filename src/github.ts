@@ -26,7 +26,7 @@ export interface GitHubAPI {
     opts: CompareCommitsOptions
   ): Promise<{
     data: {
-      files: Array<File>
+      files?: Array<File>
     }
   }>
 

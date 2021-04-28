@@ -99,15 +99,16 @@ export async function getChangedFiles({
     base: sha.before,
     head: sha.after,
   })
+  const changedFiles = result.data.files || []
 
   log.info({
-    allChangedFiles: result.data.files.map((f) => ({
+    allChangedFiles: changedFiles.map((f) => ({
       filename: f.filename,
       status: f.status,
     })),
   })
 
-  const existingFiles = result.data.files
+  const existingFiles = changedFiles
     // This action is suppose to find existing files and run tests on them
     // so we can filter out removed ones
     .filter((file) => file.status !== "removed")
@@ -122,7 +123,7 @@ export async function getChangedFiles({
   )
   log.info({ matchingFiles })
 
-  const changedDirectories = getChangedDirectories(result.data.files)
+  const changedDirectories = getChangedDirectories(changedFiles)
 
   log.info({ changedDirectories })
 
