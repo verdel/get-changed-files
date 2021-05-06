@@ -3,10 +3,10 @@
     "config:base",
     ":preserveSemverRanges",
     "group:allNonMajor",
-    "schedule:daily"
+    "schedule:weekly"
   ],
   "lockFileMaintenance": {
     "enabled": true,
-    "extends": ["schedule:daily"]
+    "extends": ["schedule:weekly"]
   }
 }
