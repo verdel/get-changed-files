@@ -47,7 +47,7 @@ function getBeforeAfterShas(event: GitHubEvent) {
   if (isGitHubPullRequestEvent(event)) {
     return {
       before: event.pull_request.base.sha,
-      after: event.pull_request.merge_commit_sha || event.pull_request.head.sha,
+      after: event.pull_request.head.sha,
     }
   } else if (isGitHubPushEvent(event)) {
     return {
