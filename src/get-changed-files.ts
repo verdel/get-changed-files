@@ -14,7 +14,7 @@ interface GitHubPullRequestEvent {
     name: string
   }
   pull_request: {
-    merge_commit_sha: string
+    number: number
     base: { sha: string }
     head: { sha: string }
   }
@@ -59,6 +59,25 @@ function getBeforeAfterShas(event: GitHubEvent) {
   throw new Error("Unexpected event")
 }
 
+export function getRef(event: GitHubEvent) {
+  if (isGitHubPullRequestEvent(event)) {
+    return event.pull_request.number.toString()
+  } else if (isGitHubPushEvent(event)) {
+    return event.after
+  }
+  throw new Error("Unexpected event")
+}
+
+export function getEventType(event: GitHubEvent) {
+  if (isGitHubPullRequestEvent(event)) {
+    return "pull_request"
+  } else if (isGitHubPushEvent(event)) {
+    return "push"
+  }
+
+  throw new Error("Unexpected event")
+}
+
 interface Log {
   info: (data: any) => void
   debug: (data: any) => void
@@ -93,13 +112,12 @@ export async function getChangedFiles({
     }
   }
 
-  const result = await gh.compareCommits({
+  const changedFiles = await gh.getChangedFiles({
     owner: event.repository.owner.login,
     repo: event.repository.name,
-    base: sha.before,
-    head: sha.after,
+    eventType: getEventType(event),
+    ref: getRef(event),
   })
-  const changedFiles = result.data.files || []
 
   log.info({
     allChangedFiles: changedFiles.map((f) => ({

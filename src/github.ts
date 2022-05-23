@@ -1,11 +1,11 @@
 import * as core from "@actions/core"
 import * as github from "@actions/github"
 
-export interface CompareCommitsOptions {
+export interface GetChangedFilesOptions {
   owner: string
   repo: string
-  base: string
-  head: string
+  eventType: "pull_request" | "push"
+  ref: string
 }
 
 export interface IsDirectoryExistOptions {
@@ -21,16 +21,14 @@ export interface File {
   previous_filename?: string
 }
 
-export interface GitHubAPI {
-  compareCommits(
-    opts: CompareCommitsOptions
-  ): Promise<{
-    data: {
-      files?: Array<File>
-    }
-  }>
+export interface Commit {
+  sha: string
+}
 
+export interface GitHubAPI {
   isDirectoryExist(opts: IsDirectoryExistOptions): Promise<boolean>
+
+  getChangedFiles(opts: GetChangedFilesOptions): Promise<Array<File>>
 }
 
 function createAPIMethod<Opts, Response>(
@@ -51,23 +49,46 @@ export class GitHub implements GitHubAPI {
   octokit: ReturnType<typeof github.getOctokit>
   constructor(token: string) {
     this.octokit = github.getOctokit(token)
-    this.compareCommits = createAPIMethod(
-      "compareCommits",
-      this.compareCommits.bind(this)
-    )
     this.isDirectoryExist = createAPIMethod(
       "isDirectoryExist",
       this.isDirectoryExist.bind(this)
     )
+    this.getChangedFiles = createAPIMethod(
+      "getChangedFiles",
+      this.getChangedFiles.bind(this)
+    )
   }
 
-  async compareCommits(opts: CompareCommitsOptions) {
-    return await this.octokit.repos.compareCommits({
-      owner: opts.owner,
-      repo: opts.repo,
-      base: opts.base,
-      head: opts.head,
-    })
+  async getChangedFiles(opts: GetChangedFilesOptions) {
+    const changedFiles: Array<File> = []
+
+    if (opts.eventType === "pull_request") {
+      for await (const response of this.octokit.paginate.iterator(
+        this.octokit.rest.pulls.listFiles,
+        {
+          owner: opts.owner,
+          repo: opts.repo,
+          pull_number: opts.ref,
+        }
+      )) {
+        changedFiles.push(...response.data)
+      }
+    }
+
+    if (opts.eventType === "push") {
+      for await (const response of this.octokit.paginate.iterator(
+        this.octokit.rest.repos.getCommit,
+        {
+          owner: opts.owner,
+          repo: opts.repo,
+          ref: opts.ref,
+        }
+      )) {
+        changedFiles.push(...response.data.files)
+      }
+    }
+
+    return changedFiles
   }
 
   async isDirectoryExist(opts: IsDirectoryExistOptions) {
