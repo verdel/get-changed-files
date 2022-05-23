@@ -119,7 +119,7 @@ export async function getChangedFiles({
     ref: getRef(event),
   })
 
-  log.info({
+  log.debug({
     allChangedFiles: changedFiles.map((f) => ({
       filename: f.filename,
       status: f.status,
@@ -132,18 +132,18 @@ export async function getChangedFiles({
     .filter((file) => file.status !== "removed")
     .map((file) => file.filename)
 
-  log.info({ existingFiles })
+  log.debug({ existingFiles })
 
   const matchingFiles = existingFiles.filter((fileName) =>
     filesGlobs
       .filter((glob) => !glob.endsWith("/"))
       .some((glob) => minimatch(fileName, glob))
   )
-  log.info({ matchingFiles })
+  log.debug({ matchingFiles })
 
   const changedDirectories = getChangedDirectories(changedFiles)
 
-  log.info({ changedDirectories })
+  log.debug({ changedDirectories })
 
   const matchedChangedDirectories = changedDirectories.filter((fileName) =>
     filesGlobs
@@ -151,7 +151,7 @@ export async function getChangedFiles({
       .some((glob) => minimatch(fileName.dirname, glob))
   )
 
-  log.info({ matchedChangedDirectories })
+  log.debug({ matchedChangedDirectories })
 
   const matchedChangedExistingDirectories = (
     await Promise.all(
@@ -170,7 +170,7 @@ export async function getChangedFiles({
     )
   ).filter(Boolean)
 
-  log.info({ matchedChangedExistingDirectories })
+  log.debug({ matchedChangedExistingDirectories })
   const files = [...matchingFiles, ...matchedChangedExistingDirectories]
 
   return {
