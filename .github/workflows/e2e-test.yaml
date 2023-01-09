@@ -9,7 +9,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       # Build
       - run: make install
@@ -25,11 +25,10 @@ jobs:
       - run: echo ${{ steps.changed.outputs.files }}
 
       # Publish
-      - uses: EndBug/add-and-commit@v7
+      - uses: EndBug/add-and-commit@v9
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         with:
           message: "Build action v1"
           add: "dist/ --force"
-          pull_strategy: "NO-PULL"
           tag: "v1 --force"
           push: "origin v1 --force"
