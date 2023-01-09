@@ -68,7 +68,7 @@ export class GitHub implements GitHubAPI {
         {
           owner: opts.owner,
           repo: opts.repo,
-          pull_number: opts.ref,
+          pull_number: Number(opts.ref),
         }
       )) {
         changedFiles.push(...response.data)
@@ -84,7 +84,7 @@ export class GitHub implements GitHubAPI {
           ref: opts.ref,
         }
       )) {
-        changedFiles.push(...response.data.files)
+        changedFiles.push(...(response.data.files || []))
       }
     }
 
@@ -93,7 +93,7 @@ export class GitHub implements GitHubAPI {
 
   async isDirectoryExist(opts: IsDirectoryExistOptions) {
     try {
-      await this.octokit.repos.getContent({
+      await this.octokit.rest.repos.getContent({
         owner: opts.owner,
         repo: opts.repo,
         ref: opts.ref,
